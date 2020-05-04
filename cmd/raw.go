@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	chanState "github.com/cosmos/cosmos-sdk/x/ibc/04-channel/exported"
 	"github.com/iqlusioninc/relayer/relayer"
 	"github.com/spf13/cobra"
+	"time"
 )
 
 ////////////////////////////////////////
@@ -34,6 +36,7 @@ func rawTransactionCmd() *cobra.Command {
 		chanCloseConfirm(),
 		closeChannelStepCmd(),
 		xfersend(),
+		loopUpdateClientCmd(),
 	)
 
 	return cmd
@@ -65,6 +68,43 @@ func updateClientCmd() *cobra.Command {
 			}
 
 			return sendAndPrint([]sdk.Msg{chains[src].PathEnd.UpdateClient(dstHeader, chains[src].MustGetAddress())}, chains[src], cmd)
+		},
+	}
+	return cmd
+}
+
+func loopUpdateClientCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "loop-update-all-clients",
+		Short:   "update client for dst-chain on src-chain",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			for {
+				for _, path := range config.Paths {
+					src, dst := path.Src.ChainID, path.Dst.ChainID
+					chains, err := config.Chains.Gets(src, dst)
+					if err != nil {
+						fmt.Println(err)
+						continue
+					}
+
+					if err = chains[src].AddPath(path.Src.ClientID, dcon, dcha, dpor, dord); err != nil {
+						fmt.Println(err)
+						continue
+					}
+
+					dstHeader, err := chains[dst].UpdateLiteWithHeader()
+					if err != nil {
+						fmt.Println(err)
+						continue
+					}
+					err = sendAndPrint([]sdk.Msg{chains[src].PathEnd.UpdateClient(dstHeader, chains[src].MustGetAddress())}, chains[src], cmd)
+					if err != nil {
+						fmt.Println(err)
+						continue
+					}
+				}
+				time.Sleep(time.Minute*10)
+			}
 		},
 	}
 	return cmd
