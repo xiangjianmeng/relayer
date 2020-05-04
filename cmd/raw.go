@@ -88,7 +88,7 @@ func loopUpdateClientCmd() *cobra.Command {
 					}
 
 					src, dst = path.Dst.ChainID, path.Src.ChainID
-					err = updateClient(cmd, path.Src, src, dst)
+					err = updateClient(cmd, path.Dst, src, dst)
 					if err != nil {
 						fmt.Println(err)
 						continue
