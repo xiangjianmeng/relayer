@@ -81,23 +81,14 @@ func loopUpdateClientCmd() *cobra.Command {
 			for {
 				for _, path := range config.Paths {
 					src, dst := path.Src.ChainID, path.Dst.ChainID
-					chains, err := config.Chains.Gets(src, dst)
+					err := updateClient(cmd, path.Src, src, dst)
 					if err != nil {
 						fmt.Println(err)
 						continue
 					}
 
-					if err = chains[src].AddPath(path.Src.ClientID, dcon, dcha, dpor, dord); err != nil {
-						fmt.Println(err)
-						continue
-					}
-
-					dstHeader, err := chains[dst].UpdateLiteWithHeader()
-					if err != nil {
-						fmt.Println(err)
-						continue
-					}
-					err = sendAndPrint([]sdk.Msg{chains[src].PathEnd.UpdateClient(dstHeader, chains[src].MustGetAddress())}, chains[src], cmd)
+					src, dst = path.Dst.ChainID, path.Src.ChainID
+					err = updateClient(cmd, path.Src, src, dst)
 					if err != nil {
 						fmt.Println(err)
 						continue
@@ -108,6 +99,27 @@ func loopUpdateClientCmd() *cobra.Command {
 		},
 	}
 	return cmd
+}
+
+func updateClient(cmd *cobra.Command, pathEnd *relayer.PathEnd, src, dst string) error {
+	chains, err := config.Chains.Gets(src, dst)
+	if err != nil {
+		return err
+	}
+
+	if err = chains[src].AddPath(pathEnd.ClientID, dcon, dcha, dpor, dord); err != nil {
+		return err
+	}
+
+	dstHeader, err := chains[dst].UpdateLiteWithHeader()
+	if err != nil {
+		return err
+	}
+	err = sendAndPrint([]sdk.Msg{chains[src].PathEnd.UpdateClient(dstHeader, chains[src].MustGetAddress())}, chains[src], cmd)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func createClientCmd() *cobra.Command {
