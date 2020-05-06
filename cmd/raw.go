@@ -78,12 +78,14 @@ func loopUpdateClientCmd() *cobra.Command {
 		Use:     "loop-update-all-clients",
 		Short:   "update client for dst-chain on src-chain",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			isSleep := true
 			for {
 				for _, path := range config.Paths {
 					src, dst := path.Src.ChainID, path.Dst.ChainID
 					err := updateClient(cmd, path.Src, src, dst)
 					if err != nil {
 						fmt.Println(err)
+						isSleep = false
 						continue
 					}
 
@@ -91,10 +93,15 @@ func loopUpdateClientCmd() *cobra.Command {
 					err = updateClient(cmd, path.Dst, src, dst)
 					if err != nil {
 						fmt.Println(err)
+						isSleep = false
 						continue
 					}
 				}
-				time.Sleep(time.Minute*10)
+				if isSleep {
+					time.Sleep(time.Minute*70)
+				} else {
+					time.Sleep(time.Second*5)
+				}
 			}
 		},
 	}
