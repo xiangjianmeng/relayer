@@ -101,6 +101,7 @@ func loopUpdateClientCmd() *cobra.Command {
 					time.Sleep(time.Minute*70)
 				} else {
 					time.Sleep(time.Second*5)
+					isSleep = true
 				}
 			}
 		},
